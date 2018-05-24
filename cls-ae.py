@@ -56,12 +56,12 @@ for i in range(len(train_x_per_class)):
 # In[5]:
 
 
-total_epochs = 1500
+total_epochs = 1000
 batch_size = 100
 learning_rate = 0.001
 random_size = 100
 image_size = 28*28
-z_dim = 100
+z_dim = 120
 
 
 # In[6]:
@@ -156,7 +156,7 @@ with tf.Session(graph=g) as sess:
 
             sess.run(train, feed_dict={X1: batch_x1, X2: batch_x2})
 
-        if epoch % 10 == 0:
+        if epoch % 50 == 0:
             print("=== Epoch ", epoch, " ===")
             loss_r = sess.run(loss, feed_dict={X1: batch_x1, X2: batch_x2})
             print("loss: ", loss_r)
@@ -179,7 +179,7 @@ with tf.Session(graph=g) as sess:
                 axes[cls // 2, (cls % 2) * 2 + 1].axis('off')
             plt.show()
 
-        if epoch % 100 == 0:
+        if epoch % 200 == 0:
             print('=== Distances ===')
             for i in range(10):
                 for j in range(i, 10):
