@@ -71,7 +71,7 @@ init = tf.random_normal_initializer(mean=0, stddev=0.15)
 
 def encoder(x, reuse=False):
     l = [image_size, 50, 30, z_dim]
-    with tf.variable_scope(name_or_scope="mnist_encoder", reuse=reuse) as scope:
+    with tf.variable_scope(name_or_scope='mnist_encoder', reuse=reuse) as scope:
         out1 = tf.layers.dense(x, l[1], activation=tf.nn.relu)
         out2 = tf.layers.dense(out1, l[2], activation=tf.nn.relu)
         output = tf.layers.dense(out2, l[3], activation=tf.nn.sigmoid)
@@ -79,7 +79,7 @@ def encoder(x, reuse=False):
 
 def decoder(z, reuse=False):
     l = [z_dim, 30, 50, image_size]
-    with tf.variable_scope(name_or_scope="mnist_decoder", reuse=reuse) as scope:
+    with tf.variable_scope(name_or_scope='mnist_decoder', reuse=reuse) as scope:
         out1 = tf.layers.dense(z, l[1], activation=tf.nn.relu)
         out2 = tf.layers.dense(out1, l[2], activation=tf.nn.relu)
         output = tf.layers.dense(out2, l[3], activation=tf.nn.sigmoid)
@@ -92,13 +92,14 @@ def decoder(z, reuse=False):
 def random_z():
     return np.random.normal(size=[1, z_dim])
 
-def dist(x1, x2):
-    d = 0
-    for i in range(x1.shape[0]):
-        for j in range(x2.shape[0]):
-            l = x1[i] - x2[j]
-            d += np.sqrt(np.dot(l, l))
-    return d / (x1.shape[0] * x2.shape[0])
+def distance(x1, x2, reuse=False):
+    x1_shape = tf.shape(x1)
+    x2_shape = tf.shape(x2)
+    final_shape = tf.concat([x1_shape[0:1], x2_shape], 0)
+    x1_tiled = tf.reshape(tf.tile(x1, [1, x2_shape[0]]), final_shape)
+    x2_tiled = tf.reshape(tf.tile(x2, [x1_shape[0], 1]), final_shape)
+    output = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(x1_tiled - x2_tiled), 1)))
+    return output
 
 
 # In[8]:
@@ -129,6 +130,8 @@ with g.as_default():
     d_vars = [var for var in t_vars if "decoder" in var.name]
     optimizer = tf.train.AdamOptimizer(learning_rate)
     train = optimizer.minimize(loss, var_list=e_vars + d_vars)
+    
+    dist = distance(enc1, enc2)
 
 
 # In[9]:
@@ -137,7 +140,7 @@ with g.as_default():
 with tf.Session(graph=g) as sess:
     sess.run(tf.global_variables_initializer())
 
-    for epoch in range(total_epochs):
+    for epoch in range(1, total_epochs + 1):
         class1 = random.randint(0, 9)
         class2 = random.randint(0, 9)
         while class1 == class2:
@@ -183,10 +186,10 @@ with tf.Session(graph=g) as sess:
             print('=== Distances ===')
             for i in range(10):
                 for j in range(i, 10):
-                    gen1, gen2 = sess.run(
-                        [enc1, enc2],
+                    d = sess.run(
+                        dist,
                         feed_dict={X1: train_x_per_class[i][0:100], X2: train_x_per_class[j][0:100]}
                     )
-                    print(i, j, dist(gen1, gen2))
+                    print(i, j, d)
                 print()
 
